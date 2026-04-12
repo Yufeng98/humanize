@@ -89,9 +89,9 @@ Pass these through `setup-rlcr-loop.sh`:
 | `--full-review-round N` | Full alignment interval | 5 |
 | `--skip-impl` | Start directly in review path | false |
 | `--push-every-round` | Require push each round | false |
-| `--claude-answer-codex` | Let Claude answer open questions directly | false |
-| `--agent-teams` | Enable agent teams mode | false |
-| `--yolo` | Skip quiz and enable --claude-answer-codex | false |
+| `--auto-answer-open-questions` | Answer open questions directly without AskUserQuestion | false |
+| `--agent-teams` | Unsupported in the Codex-only runtime | false |
+| `--yolo` | Skip quiz and enable --auto-answer-open-questions | false |
 | `--skip-quiz` | Skip Plan Understanding Quiz (implicit in skill mode) | false |
 
 Review phase `codex review` runs with `gpt-5.4:high`.

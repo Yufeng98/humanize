@@ -79,7 +79,7 @@ Write your analysis to $LOOP_DIR/methodology-analysis-report.md.
 When done, write a completion note to $LOOP_DIR/methodology-analysis-done.md."
 
     local analysis_prompt
-    analysis_prompt=$(load_and_render_safe "$TEMPLATE_DIR" "claude/methodology-analysis-prompt.md" "$fallback" \
+    analysis_prompt=$(load_and_render_safe "$TEMPLATE_DIR" "loop/methodology-analysis-prompt.md" "$fallback" \
         "LOOP_DIR=$LOOP_DIR" \
         "EXIT_REASON=$exit_reason" \
         "EXIT_REASON_DESCRIPTION=$exit_reason_description" \

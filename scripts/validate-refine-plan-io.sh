@@ -506,7 +506,7 @@ REQUIRED_SECTIONS=(
     "## Feasibility Hints"
     "## Dependencies and Sequence"
     "## Task Breakdown"
-    "## Claude-Codex Deliberation"
+    "## Plan Convergence Record"
     "## Pending User Decisions"
     "## Implementation Notes"
 )

@@ -1,5 +1,7 @@
 # Install Humanize for Kimi CLI
 
+This path is a legacy frontend. Humanize now runs a Codex-native RLCR runtime even when launched from Kimi CLI.
+
 This guide explains how to install the Humanize skills for [Kimi Code CLI](https://github.com/MoonshotAI/kimi-cli).
 
 ## Overview

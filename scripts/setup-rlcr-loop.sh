@@ -2,7 +2,7 @@
 #
 # Setup script for start-rlcr-loop
 #
-# Creates state files for the loop that uses Codex to review Claude's work.
+# Creates state files for the loop that uses Codex for both build and review.
 #
 # Usage:
 #   setup-rlcr-loop.sh <path/to/plan.md> [--max N] [--codex-model MODEL:EFFORT]
@@ -116,18 +116,16 @@ OPTIONS:
                        Full Alignment Checks occur at rounds N-1, 2N-1, 3N-1, etc.
   --skip-impl          Skip implementation phase and go directly to code review
                        Plan file is optional when using this flag
-  --claude-answer-codex
-                       When Codex finds Open Questions, let Claude answer them
-                       directly instead of asking user via AskUserQuestion.
+  --auto-answer-open-questions
+                       When Codex finds Open Questions, answer them directly
+                       instead of asking user via AskUserQuestion.
                        NOT RECOMMENDED: Open Questions usually indicate gaps in
                        your plan that deserve human clarification. By default,
-                       Claude asks user for clarification, which is preferred.
-  --agent-teams        Enable Claude Code Agent Teams mode for parallel development.
-                       Requires CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 environment variable.
-                       Claude acts as team leader, splitting tasks among team members.
-  --yolo               Skip Plan Understanding Quiz and let Claude answer Codex Open
+                       Humanize asks user for clarification, which is preferred.
+  --agent-teams        No longer supported in the Codex-only runtime.
+  --yolo               Skip Plan Understanding Quiz and auto-answer Codex Open
                        Questions directly. Convenience alias for --skip-quiz
-                       --claude-answer-codex. Use when you trust the plan and want
+                       --auto-answer-open-questions. Use when you trust the plan and want
                        maximum automation.
   --skip-quiz          Skip the Plan Understanding Quiz only (without other behavioral
                        changes). The quiz is an advisory pre-flight check that verifies
@@ -144,19 +142,19 @@ DESCRIPTION:
   This command:
 
   1. Takes a markdown plan file as input (not a prompt string)
-  2. Uses Codex to independently review Claude's work each iteration
+  2. Uses Codex to evaluate each iteration and gate progression
   3. Has two phases: Implementation Phase and Review Phase
 
   The flow:
-  1. Claude executes plan tasks with tag-based routing (Implementation Phase)
-     - \`coding\` tasks: Claude implements directly
-     - \`analyze\` tasks: Claude delegates execution via \`/humanize:ask-codex\`
-  2. Claude writes a summary to round-N-summary.md
+  1. Codex executes plan tasks with tag-based routing (Implementation Phase)
+     - \`coding\` tasks: current Codex session implements directly
+     - \`analyze\` tasks: current Codex session delegates bounded analysis via \`/humanize:ask-codex\`
+  2. Codex writes a summary to round-N-summary.md
   3. On exit attempt, Codex reviews the summary
   4. If Codex finds issues, it blocks exit and sends feedback
   5. If Codex outputs "COMPLETE", enters Review Phase
   6. In Review Phase, codex review checks code quality with [P0-9] markers
-  7. If code review finds issues, Claude fixes them
+  7. If code review finds issues, Codex fixes them
   8. When no issues found, enters Finalize Phase and loop ends
 
 EXAMPLES:
@@ -273,7 +271,7 @@ while [[ $# -gt 0 ]]; do
             SKIP_IMPL="true"
             shift
             ;;
-        --claude-answer-codex)
+        --auto-answer-open-questions)
             ASK_CODEX_QUESTION="false"
             shift
             ;;
@@ -379,17 +377,10 @@ fi
 # ========================================
 
 if [[ "$AGENT_TEAMS" == "true" ]]; then
-    if [[ "${CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS:-}" != "1" ]]; then
-        echo "Error: --agent-teams requires the CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS environment variable to be set." >&2
-        echo "" >&2
-        echo "Claude Code Agent Teams is an experimental feature that must be enabled before use." >&2
-        echo "To enable it, set the environment variable before starting Claude Code:" >&2
-        echo "" >&2
-        echo "  export CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1" >&2
-        echo "" >&2
-        echo "Or add it to your shell profile (~/.bashrc, ~/.zshrc) for persistent access." >&2
-        exit 1
-    fi
+    echo "Error: --agent-teams is no longer supported in the Codex-only runtime." >&2
+    echo "" >&2
+    echo "Humanize now uses a single Codex build agent for RLCR loops." >&2
+    exit 1
 fi
 
 # Merge explicit and positional plan file
@@ -835,7 +826,7 @@ No implementation plan was provided - this is expected for skip-impl mode.
 
 The loop will:
 1. Run `codex review` on the current branch changes
-2. If issues are found, Claude will fix them
+2. If issues are found, Codex will fix them
 3. When no issues remain, enter finalize phase
 
 SKIP_IMPL_PLAN_EOF
@@ -1076,14 +1067,14 @@ RULES:
 GOAL_TRACKER_EOF
 
 # Extract goal from plan file (look for ## Goal, ## Objective, or first paragraph)
-# This is a heuristic - Claude will refine it in round 0
+# This is a heuristic - Codex will refine it in round 0
 # Use ^## without leading whitespace - markdown headers should start at column 0
 GOAL_SECTION=$(extract_plan_goal_content "$FULL_PLAN_PATH")
 if [[ -n "$GOAL_SECTION" ]]; then
     echo "$GOAL_SECTION" >> "$GOAL_TRACKER_FILE"
 else
     # Use first non-empty, non-heading paragraph as goal description
-    echo "[To be extracted from plan by Claude in Round 0]" >> "$GOAL_TRACKER_FILE"
+    echo "[To be extracted from plan by Codex in Round 0]" >> "$GOAL_TRACKER_FILE"
     echo "" >> "$GOAL_TRACKER_FILE"
     echo "Source plan: $PLAN_FILE" >> "$GOAL_TRACKER_FILE"
 fi
@@ -1092,7 +1083,7 @@ cat >> "$GOAL_TRACKER_FILE" << 'GOAL_TRACKER_EOF'
 
 ### Acceptance Criteria
 <!-- Each criterion must be independently verifiable -->
-<!-- Claude must extract or define these in Round 0 -->
+<!-- Codex must extract or define these in Round 0 -->
 
 GOAL_TRACKER_EOF
 
@@ -1103,7 +1094,7 @@ AC_SECTION=$(extract_plan_ac_content "$FULL_PLAN_PATH")
 if [[ -n "$AC_SECTION" ]]; then
     echo "$AC_SECTION" >> "$GOAL_TRACKER_FILE"
 else
-    echo "[To be defined by Claude in Round 0 based on the plan]" >> "$GOAL_TRACKER_FILE"
+    echo "[To be defined by Codex in Round 0 based on the plan]" >> "$GOAL_TRACKER_FILE"
 fi
 
 cat >> "$GOAL_TRACKER_FILE" << 'GOAL_TRACKER_EOF'
@@ -1125,7 +1116,7 @@ cat >> "$GOAL_TRACKER_FILE" << 'GOAL_TRACKER_EOF'
 <!-- Mainline tasks only: each task must directly advance the current round objective and carry routing metadata -->
 | Task | Target AC | Status | Tag | Owner | Notes |
 |------|-----------|--------|-----|-------|-------|
-| [To be populated by Claude based on plan] | - | pending | coding or analyze | claude or codex | mainline task only |
+| [To be populated by Codex based on plan] | - | pending | coding or analyze | codex | mainline task only |
 
 ### Blocking Side Issues
 <!-- Only issues that directly block current mainline progress belong here -->
@@ -1332,10 +1323,10 @@ Rules:
 
 Each task must have one routing tag from the plan: \`coding\` or \`analyze\`.
 
-- Tag \`coding\`: Claude executes the task directly.
-- Tag \`analyze\`: Claude must execute via \`/humanize:ask-codex\`, then integrate Codex output.
-- Keep Goal Tracker "Active Tasks" columns **Tag** and **Owner** aligned with execution (\`coding -> claude\`, \`analyze -> codex\`).
-- If a task has no explicit tag, default to \`coding\` (Claude executes directly).
+- Tag \`coding\`: current Codex session executes the task directly.
+- Tag \`analyze\`: current Codex session must execute via \`/humanize:ask-codex\`, then integrate the result.
+- Keep Goal Tracker "Active Tasks" columns **Tag** and **Owner** aligned with execution (\`coding -> codex\`, \`analyze -> codex\`).
+- If a task has no explicit tag, default to \`coding\` (current Codex session executes directly).
 
 EOF
 
@@ -1365,8 +1356,8 @@ EOF
 
 # Inject agent-teams instructions if enabled (header + shared core)
 if [[ "$AGENT_TEAMS" == "true" ]]; then
-    AGENT_TEAMS_HEADER="$TEMPLATE_DIR/claude/agent-teams-instructions.md"
-    AGENT_TEAMS_CORE="$TEMPLATE_DIR/claude/agent-teams-core.md"
+    AGENT_TEAMS_HEADER="$TEMPLATE_DIR/loop/agent-teams-instructions.md"
+    AGENT_TEAMS_CORE="$TEMPLATE_DIR/loop/agent-teams-core.md"
     if [[ -f "$AGENT_TEAMS_HEADER" ]] && [[ -f "$AGENT_TEAMS_CORE" ]]; then
         echo "" >> "$LOOP_DIR/round-0-prompt.md"
         cat "$AGENT_TEAMS_HEADER" >> "$LOOP_DIR/round-0-prompt.md"
@@ -1482,8 +1473,7 @@ Codex Model: $CODEX_MODEL
 Codex Effort: $CODEX_EFFORT
 Codex Timeout: ${CODEX_TIMEOUT}s
 Full Review Round: $FULL_REVIEW_ROUND (Full Alignment Checks at rounds $((FULL_REVIEW_ROUND - 1)), $((2 * FULL_REVIEW_ROUND - 1)), $((3 * FULL_REVIEW_ROUND - 1)), ...)
-Ask User for Codex Questions: $ASK_CODEX_QUESTION
-Agent Teams: $AGENT_TEAMS
+Ask User for Open Questions: $ASK_CODEX_QUESTION
 Loop Directory: $LOOP_DIR
 
 The loop is now active. When you try to exit:

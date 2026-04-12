@@ -6,7 +6,7 @@ Detailed usage documentation for the Humanize plugin. For installation, see [Ins
 
 Humanize creates an iterative feedback loop with two phases:
 
-1. **Implementation Phase**: Claude works on your plan, Codex reviews summaries until COMPLETE
+1. **Implementation Phase**: Codex works on your plan, Codex reviews summaries until COMPLETE
 2. **Review Phase**: `codex review --base <branch>` checks code quality with `[P0-9]` severity markers
 
 The loop continues until all acceptance criteria are met or no issues remain.
@@ -37,7 +37,7 @@ The quiz is advisory, not a gate. You always have the option to proceed. But tha
 ### Skipping the Quiz
 
 - `--skip-quiz` -- Skip the quiz only. The rest of the RLCR loop behaves normally.
-- `--yolo` -- Skip the quiz AND let Claude answer Codex's open questions directly (`--claude-answer-codex`). This is full automation mode for users who have already reviewed the plan and want to hand over complete control.
+- `--yolo` -- Skip the quiz AND auto-answer Codex open questions directly (`--auto-answer-open-questions`). This is full automation mode for users who have already reviewed the plan and want to hand over complete control.
 - Plans started via `gen-plan --auto-start-rlcr-if-converged` skip the quiz automatically, because the gen-plan convergence discussion already verified the user's understanding.
 
 ## Typical Planning Flow
@@ -88,13 +88,12 @@ OPTIONS:
                          Full Alignment Checks occur at rounds N-1, 2N-1, 3N-1, etc.
   --skip-impl            Skip implementation phase, go directly to code review
                          Plan file is optional when using this flag
-  --claude-answer-codex  When Codex finds Open Questions, let Claude answer them
+  --auto-answer-open-questions  When Codex finds Open Questions, answer them
                          directly instead of asking user via AskUserQuestion
-  --agent-teams          Enable Claude Code Agent Teams mode for parallel development.
-                         Requires CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1 environment variable.
-                         Claude acts as team leader, splitting tasks among team members.
-  --yolo                 Skip Plan Understanding Quiz and let Claude answer Codex Open
-                         Questions directly. Alias for --skip-quiz --claude-answer-codex.
+  --agent-teams          No longer supported in the Codex-only runtime.
+                         Humanize now uses a single Codex build agent.
+  --yolo                 Skip Plan Understanding Quiz and auto-answer Codex Open
+                         Questions directly. Alias for --skip-quiz --auto-answer-open-questions.
   --skip-quiz            Skip the Plan Understanding Quiz only (without other changes).
   -h, --help             Show help message
 ```
@@ -110,7 +109,7 @@ OPTIONS:
   --auto-start-rlcr-if-converged
              Start the RLCR loop automatically when the plan is converged
              (discussion mode only; ignored in --direct)
-  --discussion  Use discussion mode (iterative Claude/Codex convergence rounds)
+  --discussion  Use discussion mode (iterative Codex convergence rounds)
   --direct      Use direct mode (skip convergence rounds, proceed immediately to plan)
   -h, --help             Show help message
 ```
@@ -241,8 +240,7 @@ Current built-in keys:
 |-----|---------|-------------|
 | `codex_model` | `gpt-5.4` | Shared default model for Codex-backed review and analysis |
 | `codex_effort` | `high` | Shared default reasoning effort (`xhigh`, `high`, `medium`, `low`) |
-| `bitlesson_model` | `haiku` | Model used by the BitLesson selector agent |
-| `provider_mode` | unset | Optional runtime mode hint such as `codex-only` |
+| `bitlesson_model` | `gpt-5.4` | Model used by the BitLesson selector agent |
 | `agent_teams` | `false` | Project-level default for agent teams workflow |
 | `alternative_plan_language` | `""` | Optional translated plan variant language; supported values include `Chinese`, `Korean`, `Japanese`, `Spanish`, `French`, `German`, `Portuguese`, `Russian`, `Arabic`, or ISO codes like `zh` |
 | `gen_plan_mode` | `discussion` | Default plan-generation mode |
@@ -262,13 +260,12 @@ To override, add to `.humanize/config.json`:
 {
   "codex_model": "gpt-5.2",
   "codex_effort": "xhigh",
-  "bitlesson_model": "sonnet"
+  "bitlesson_model": "gpt-5.4"
 }
 ```
 
 On Codex installs, Humanize also seeds `${XDG_CONFIG_HOME:-~/.config}/humanize/config.json`
-with a Codex/OpenAI `bitlesson_model` and `provider_mode: "codex-only"` when those keys
-are unset, so BitLesson selection stays on the Codex/OpenAI path without probing Claude.
+with a Codex/OpenAI `bitlesson_model` when that key is unset.
 
 Codex model is resolved with this precedence:
 1. CLI `--codex-model` flag (highest priority)

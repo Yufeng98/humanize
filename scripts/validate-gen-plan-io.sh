@@ -20,7 +20,7 @@ usage() {
     echo "  --input   Path to the input draft file (required)"
     echo "  --output  Path to the output plan file (required)"
     echo "  --auto-start-rlcr-if-converged  Enable direct RLCR start after converged planning (discussion mode only)"
-    echo "  --discussion  Use discussion mode (iterative Claude/Codex convergence rounds)"
+    echo "  --discussion  Use discussion mode (iterative Codex convergence rounds)"
     echo "  --direct      Use direct mode (skip convergence rounds, proceed immediately to plan)"
     echo "  -h, --help  Show this help message"
     exit 6

@@ -158,11 +158,11 @@ else
         "gpt-5.4" "$(jq -c '.' "$HUMANIZE_USER_CONFIG" 2>/dev/null || echo MISSING)"
 fi
 
-if [[ "$(jq -r '.provider_mode // empty' "$HUMANIZE_USER_CONFIG")" == "codex-only" ]]; then
-    pass "Codex install marks Humanize user config as codex-only"
+if [[ "$(jq -r '.provider_mode // empty' "$HUMANIZE_USER_CONFIG")" == "" ]]; then
+    pass "Codex install does not require provider_mode in Humanize user config"
 else
-    fail "Codex install marks Humanize user config as codex-only" \
-        "codex-only" "$(jq -c '.' "$HUMANIZE_USER_CONFIG" 2>/dev/null || echo MISSING)"
+    fail "Codex install does not require provider_mode in Humanize user config" \
+        "provider_mode unset" "$(jq -c '.' "$HUMANIZE_USER_CONFIG" 2>/dev/null || echo MISSING)"
 fi
 
 runtime_root="$CODEX_HOME_DIR/skills/humanize"

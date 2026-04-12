@@ -11,16 +11,12 @@ The selector reads `bitlesson_model` from the merged config hierarchy:
 3. `.humanize/config.json`
 4. CLI flags where applicable
 
-Provider routing is automatic:
+BitLesson selection is Codex-only.
 
-- `gpt-*`, `o[N]-*` (e.g. `o1-*`, `o3-*`, `o4-*`) route to Codex
-- `claude-*`, `haiku`, `sonnet`, `opus` route to Claude
+- `gpt-*`, `o[N]-*` models are used directly
+- older Claude-flavored values such as `haiku`, `sonnet`, `opus`, or `claude-*` are tolerated as legacy config and automatically fall back to the configured Codex model
 
-If the configured provider binary is missing, the selector falls back to the default Codex model so the loop can still proceed.
-
-On Codex-only installs, Humanize writes `provider_mode: "codex-only"` into the user config.
-When that mode is present, the selector forces BitLesson selection onto the Codex/OpenAI path
-before provider resolution, even if an older default such as `haiku` would otherwise route to Claude.
+Humanize still tolerates legacy `provider_mode` config, but BitLesson selection no longer uses it.
 
 ## Workflow
 

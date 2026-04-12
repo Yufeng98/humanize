@@ -74,10 +74,10 @@ fi
 merged=$(XDG_CONFIG_HOME="$TEST_DIR/no-user" \
     load_merged_config "$PROJECT_ROOT" "$PROJECT_DIR" 2>/dev/null)
 val=$(get_config_value "$merged" "bitlesson_model")
-if [[ "$val" == "haiku" ]]; then
+if [[ "$val" == "gpt-5.4" ]]; then
     pass "malformed project config: falls back to defaults"
 else
-    fail "malformed project config: falls back to defaults" "haiku" "$val"
+    fail "malformed project config: falls back to defaults" "gpt-5.4" "$val"
 fi
 
 # ========================================
@@ -103,10 +103,10 @@ fi
 merged=$(XDG_CONFIG_HOME="$TEST_DIR/bad-user-cfg" \
     load_merged_config "$PROJECT_ROOT" "$PROJECT_DIR" 2>/dev/null)
 val=$(get_config_value "$merged" "bitlesson_model")
-if [[ "$val" == "haiku" ]]; then
+if [[ "$val" == "gpt-5.4" ]]; then
     pass "malformed user config: falls back to defaults"
 else
-    fail "malformed user config: falls back to defaults" "haiku" "$val"
+    fail "malformed user config: falls back to defaults" "gpt-5.4" "$val"
 fi
 
 # ========================================
@@ -121,10 +121,10 @@ printf '{}' > "$PROJECT_DIR/.humanize/config.json"
 merged=$(XDG_CONFIG_HOME="$TEST_DIR/no-user2" \
     load_merged_config "$PROJECT_ROOT" "$PROJECT_DIR" 2>/dev/null)
 val=$(get_config_value "$merged" "bitlesson_model")
-if [[ "$val" == "haiku" ]]; then
+if [[ "$val" == "gpt-5.4" ]]; then
     pass "empty project config: uses all defaults"
 else
-    fail "empty project config: uses all defaults" "haiku" "$val"
+    fail "empty project config: uses all defaults" "gpt-5.4" "$val"
 fi
 
 # ========================================
@@ -139,10 +139,10 @@ mkdir -p "$PROJECT_DIR"
 if merged=$(XDG_CONFIG_HOME="$TEST_DIR/no-user3" \
         load_merged_config "$PROJECT_ROOT" "$PROJECT_DIR" 2>/dev/null); then
     val=$(get_config_value "$merged" "bitlesson_model")
-    if [[ "$val" == "haiku" ]]; then
+    if [[ "$val" == "gpt-5.4" ]]; then
         pass "missing project config file: not fatal, uses defaults"
     else
-        fail "missing project config file: not fatal, uses defaults" "haiku" "$val"
+        fail "missing project config file: not fatal, uses defaults" "gpt-5.4" "$val"
     fi
 else
     fail "missing project config file: not fatal, uses defaults" \
@@ -161,10 +161,10 @@ mkdir -p "$PROJECT_DIR"
 if merged=$(XDG_CONFIG_HOME="$TEST_DIR/does-not-exist" \
         load_merged_config "$PROJECT_ROOT" "$PROJECT_DIR" 2>/dev/null); then
     val=$(get_config_value "$merged" "bitlesson_model")
-    if [[ "$val" == "haiku" ]]; then
+    if [[ "$val" == "gpt-5.4" ]]; then
         pass "missing user config directory: not fatal, uses defaults"
     else
-        fail "missing user config directory: not fatal, uses defaults" "haiku" "$val"
+        fail "missing user config directory: not fatal, uses defaults" "gpt-5.4" "$val"
     fi
 else
     fail "missing user config directory: not fatal, uses defaults" \

@@ -183,7 +183,7 @@ Reuse config-loader semantics and keep writes atomic.
 |---------|----|-----|---------|
 | task1 | AC-1 | coding | - |
 
-## Claude-Codex Deliberation
+## Plan Convergence Record
 ### Convergence Status
 partially_converged
 
@@ -222,7 +222,7 @@ Reuse config-loader semantics and keep writes atomic.
 |---------|----|-----|---------|
 | task1 | AC-1 | coding | - |
 
-## Claude-Codex Deliberation
+## Plan Convergence Record
 ### Convergence Status
 partially_converged
 
@@ -262,7 +262,7 @@ Reuse config-loader semantics and keep writes atomic.
 |---------|----|-----|---------|
 | task1 | AC-1 | coding | - |
 
-## Claude-Codex Deliberation
+## Plan Convergence Record
 ### Convergence Status
 partially_converged
 
@@ -318,7 +318,7 @@ Hidden inside a code fence.
 |---------|----|-----|---------|
 | hidden | AC-1 | coding | - |
 
-## Claude-Codex Deliberation
+## Plan Convergence Record
 ### Convergence Status
 partially_converged
 
@@ -359,7 +359,7 @@ Hidden inside an HTML comment.
 |---------|----|-----|---------|
 | hidden | AC-1 | coding | - |
 
-## Claude-Codex Deliberation
+## Plan Convergence Record
 ### Convergence Status
 partially_converged
 
@@ -409,7 +409,7 @@ Reuse config-loader semantics and keep writes atomic.
 |---------|----|-----|---------|
 | task1 | AC-1 | coding | - |
 
-## Claude-Codex Deliberation
+## Plan Convergence Record
 ### Convergence Status
 partially_converged
 
@@ -759,7 +759,7 @@ assert_file_contains "$REFINE_PLAN_CMD" "- `## Path Boundaries`" "refine-plan.md
 assert_file_contains "$REFINE_PLAN_CMD" "- `## Feasibility Hints and Suggestions`" "refine-plan.md preserves Feasibility Hints and Suggestions section"
 assert_file_contains "$REFINE_PLAN_CMD" "- `## Dependencies and Sequence`" "refine-plan.md preserves Dependencies and Sequence section"
 assert_file_contains "$REFINE_PLAN_CMD" "- `## Task Breakdown`" "refine-plan.md preserves Task Breakdown section"
-assert_file_contains "$REFINE_PLAN_CMD" "- `## Claude-Codex Deliberation`" "refine-plan.md preserves Claude-Codex Deliberation section"
+assert_file_contains "$REFINE_PLAN_CMD" "- `## Plan Convergence Record`" "refine-plan.md preserves Plan Convergence Record section"
 assert_file_contains "$REFINE_PLAN_CMD" "- `## Pending User Decisions`" "refine-plan.md preserves Pending User Decisions section"
 assert_file_contains "$REFINE_PLAN_CMD" "- `## Implementation Notes`" "refine-plan.md preserves Implementation Notes section"
 

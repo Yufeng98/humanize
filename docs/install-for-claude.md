@@ -1,5 +1,7 @@
 # Install Humanize for Claude Code
 
+This path is a legacy frontend. Humanize now runs a Codex-native RLCR runtime even when launched from Claude Code.
+
 ## Prerequisites
 
 - [codex](https://github.com/openai/codex) -- OpenAI Codex CLI (for review). Verify with `codex --version`.

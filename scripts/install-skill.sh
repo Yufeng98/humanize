@@ -313,9 +313,6 @@ else:
 if not data.get("bitlesson_model"):
     data["bitlesson_model"] = data.get("codex_model") or default_codex_model
 
-if install_target == "codex" and not data.get("provider_mode"):
-    data["provider_mode"] = "codex-only"
-
 user_config.write_text(json.dumps(data, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 PY
     case "$?" in

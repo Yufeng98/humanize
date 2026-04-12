@@ -151,7 +151,7 @@ load_and_render() {
 }
 
 # Append content from another template file
-# Usage: append_template "$base_content" "$TEMPLATE_DIR" "claude/post-alignment.md"
+# Usage: append_template "$base_content" "$TEMPLATE_DIR" "loop/post-alignment.md"
 # Only appends if the template exists and is non-empty.
 append_template() {
     local base_content="$1"
@@ -221,7 +221,7 @@ validate_template_dir() {
         return 1
     fi
 
-    local required_subdirs=("block" "codex" "claude" "plan")
+    local required_subdirs=("block" "codex" "loop" "plan")
     local missing=()
     local subdir
     for subdir in "${required_subdirs[@]}"; do

@@ -2,12 +2,12 @@
 #
 # Stop Hook for RLCR loop
 #
-# Intercepts Claude's exit attempts and uses Codex to review work.
+# Intercepts exit attempts and uses Codex to review work.
 # If Codex doesn't confirm completion, blocks exit and feeds review back.
 #
 # State directory: .humanize/rlcr/<timestamp>/
 # State file: state.md (current_round, max_iterations, codex config)
-# Summary file: round-N-summary.md (Claude's work summary)
+# Summary file: round-N-summary.md (Codex build summary)
 # Review prompt: round-N-review-prompt.md (prompt sent to Codex)
 # Review result: round-N-review-result.md (Codex's review)
 #
@@ -28,7 +28,7 @@ DEFAULT_CODEX_TIMEOUT=5400
 HOOK_INPUT=$(cat)
 
 # NOTE: We intentionally do NOT check stop_hook_active here.
-# For iterative loops, stop_hook_active will be true when Claude is continuing
+# For iterative loops, stop_hook_active will be true when the build agent is continuing
 # from a previous blocked stop. We WANT to run Codex review each iteration.
 # Loop termination is controlled by:
 # - No active loop directory (no state.md) -> exit early below
@@ -941,7 +941,7 @@ SUMMARY_CONTENT=$(cat "$SUMMARY_FILE")
 
 # Shared prompt section for Goal Tracker Update Requests (used in both Full Alignment and Regular reviews)
 GOAL_TRACKER_SECTION_FALLBACK="## Goal Tracker Updates
-If Claude's summary includes a Goal Tracker Update Request section, apply the requested changes to {{GOAL_TRACKER_FILE}}."
+If the build summary includes a Goal Tracker Update Request section, apply the requested changes to {{GOAL_TRACKER_FILE}}."
 GOAL_TRACKER_UPDATE_SECTION=$(load_and_render_safe "$TEMPLATE_DIR" "codex/goal-tracker-update-section.md" "$GOAL_TRACKER_SECTION_FALLBACK" \
     "GOAL_TRACKER_FILE=$GOAL_TRACKER_FILE")
 
@@ -968,9 +968,9 @@ PREV_PREV_ROUND=$(( CURRENT_ROUND > 1 ? CURRENT_ROUND - 2 : 0 ))
 # Build the review prompt
 FULL_ALIGNMENT_FALLBACK="# Full Alignment Review (Round {{CURRENT_ROUND}})
 
-Review Claude's work against the plan and goal tracker. Check all goals are being met.
+Review the build work against the plan and goal tracker. Check all goals are being met.
 
-## Claude's Summary
+## Build Summary
 {{SUMMARY_CONTENT}}
 
 {{GOAL_TRACKER_UPDATE_SECTION}}
@@ -979,9 +979,9 @@ Write your review to {{REVIEW_RESULT_FILE}}. End with COMPLETE if done, or list 
 
 REGULAR_REVIEW_FALLBACK="# Code Review (Round {{CURRENT_ROUND}})
 
-Review Claude's work for this round.
+Review the build work for this round.
 
-## Claude's Summary
+## Build Summary
 {{SUMMARY_CONTENT}}
 
 {{GOAL_TRACKER_UPDATE_SECTION}}
@@ -1251,7 +1251,7 @@ If time permits, use the \`code-simplifier:code-simplifier\` agent via the Task 
 2. Commit your changes
 3. Write your finalize summary to: {{FINALIZE_SUMMARY_FILE}}"
 
-        finalize_prompt=$(load_and_render_safe "$TEMPLATE_DIR" "claude/finalize-phase-skipped-prompt.md" "$fallback" \
+        finalize_prompt=$(load_and_render_safe "$TEMPLATE_DIR" "loop/finalize-phase-skipped-prompt.md" "$fallback" \
             "FINALIZE_SUMMARY_FILE=$finalize_summary_file" \
             "PLAN_FILE=$PLAN_FILE" \
             "GOAL_TRACKER_FILE=$GOAL_TRACKER_FILE" \
@@ -1279,7 +1279,7 @@ Focus on the code changes made during this RLCR session. Focus more on changes b
 2. Commit your changes
 3. Write your finalize summary to: {{FINALIZE_SUMMARY_FILE}}"
 
-        finalize_prompt=$(load_and_render_safe "$TEMPLATE_DIR" "claude/finalize-phase-prompt.md" "$fallback" \
+        finalize_prompt=$(load_and_render_safe "$TEMPLATE_DIR" "loop/finalize-phase-prompt.md" "$fallback" \
             "FINALIZE_SUMMARY_FILE=$finalize_summary_file" \
             "PLAN_FILE=$PLAN_FILE" \
             "GOAL_TRACKER_FILE=$GOAL_TRACKER_FILE" \
@@ -1308,7 +1308,7 @@ append_task_tag_routing_note() {
 ## Task Tag Routing Reminder
 
 Follow the plan's per-task routing tags strictly:
-- `coding` task -> Claude executes directly
+- `coding` task -> current Codex session executes directly
 - `analyze` task -> execute via `/humanize:ask-codex`, then integrate the result
 - Keep Goal Tracker Active Tasks columns `Tag` and `Owner` aligned with execution
 ROUTING_EOF
@@ -1400,7 +1400,7 @@ continue_review_loop_with_issues() {
     sed "s/^current_round: .*/current_round: $round/" "$STATE_FILE" > "$temp_file"
     mv "$temp_file" "$STATE_FILE"
 
-    # Build review-fix prompt for Claude
+    # Build review-fix prompt for the current Codex session
     local next_prompt_file="$LOOP_DIR/round-${round}-prompt.md"
     local next_summary_file="$LOOP_DIR/round-${round}-summary.md"
     if [[ ! -f "$next_summary_file" ]]; then
@@ -1444,7 +1444,7 @@ You are in the **Review Phase** of the RLCR loop. Codex has performed a code rev
 5. Commit your changes after fixing the issues
 6. Write your summary to: {{SUMMARY_FILE}}"
 
-    load_and_render_safe "$TEMPLATE_DIR" "claude/review-phase-prompt.md" "$fallback" \
+    load_and_render_safe "$TEMPLATE_DIR" "loop/review-phase-prompt.md" "$fallback" \
         "REVIEW_CONTENT=$review_content" \
         "SUMMARY_FILE=$next_summary_file" \
         "BITLESSON_FILE=$BITLESSON_FILE" \
@@ -1949,7 +1949,7 @@ Do not spend this round clearing queued work. Recover mainline progress first.
 {{REVIEW_CONTENT}}"
 
 if [[ "$DRIFT_REPLAN_REQUIRED" == "true" ]]; then
-    load_and_render_safe "$TEMPLATE_DIR" "claude/drift-replan-prompt.md" "$DRIFT_REPLAN_FALLBACK" \
+    load_and_render_safe "$TEMPLATE_DIR" "loop/drift-replan-prompt.md" "$DRIFT_REPLAN_FALLBACK" \
         "PLAN_FILE=$PLAN_FILE" \
         "REVIEW_CONTENT=$REVIEW_CONTENT" \
         "GOAL_TRACKER_FILE=$GOAL_TRACKER_FILE" \
@@ -1959,7 +1959,7 @@ if [[ "$DRIFT_REPLAN_REQUIRED" == "true" ]]; then
         "STALL_COUNT=$NEXT_MAINLINE_STALL_COUNT" \
         "LAST_MAINLINE_VERDICT=$NEXT_LAST_MAINLINE_VERDICT" > "$NEXT_PROMPT_FILE"
 else
-    load_and_render_safe "$TEMPLATE_DIR" "claude/next-round-prompt.md" "$NEXT_ROUND_FALLBACK" \
+    load_and_render_safe "$TEMPLATE_DIR" "loop/next-round-prompt.md" "$NEXT_ROUND_FALLBACK" \
         "PLAN_FILE=$PLAN_FILE" \
         "REVIEW_CONTENT=$REVIEW_CONTENT" \
         "GOAL_TRACKER_FILE=$GOAL_TRACKER_FILE" \
@@ -2022,7 +2022,7 @@ if [[ "$ASK_CODEX_QUESTION" == "true" ]]; then
 
     if [[ "$HAS_OPEN_QUESTION" == "true" ]]; then
         echo "Detected Open Question(s) in Codex review - injecting AskUserQuestion notice" >&2
-        OPEN_QUESTION_NOTICE=$(load_template "$TEMPLATE_DIR" "claude/open-question-notice.md" 2>/dev/null)
+        OPEN_QUESTION_NOTICE=$(load_template "$TEMPLATE_DIR" "loop/open-question-notice.md" 2>/dev/null)
         if [[ -z "$OPEN_QUESTION_NOTICE" ]]; then
             OPEN_QUESTION_NOTICE="**IMPORTANT**: Codex has found Open Question(s). You must use \`AskUserQuestion\` to clarify those questions with user first, before proceeding to resolve any other Codex's findings."
         fi
@@ -2047,7 +2047,7 @@ fi
 
 # Add special instructions for post-Full Alignment Check rounds
 if [[ "$FULL_ALIGNMENT_CHECK" == "true" ]]; then
-    POST_ALIGNMENT=$(load_template "$TEMPLATE_DIR" "claude/post-alignment-action-items.md" 2>/dev/null)
+    POST_ALIGNMENT=$(load_template "$TEMPLATE_DIR" "loop/post-alignment-action-items.md" 2>/dev/null)
     if [[ -n "$POST_ALIGNMENT" ]]; then
         echo "$POST_ALIGNMENT" >> "$NEXT_PROMPT_FILE"
     fi
@@ -2056,13 +2056,13 @@ fi
 # Add footer with commit/summary instructions
 FOOTER_FALLBACK="## Before Exiting
 Commit your changes and write summary to {{NEXT_SUMMARY_FILE}}"
-load_and_render_safe "$TEMPLATE_DIR" "claude/next-round-footer.md" "$FOOTER_FALLBACK" \
+load_and_render_safe "$TEMPLATE_DIR" "loop/next-round-footer.md" "$FOOTER_FALLBACK" \
     "NEXT_SUMMARY_FILE=$NEXT_SUMMARY_FILE" >> "$NEXT_PROMPT_FILE"
 append_task_tag_routing_note "$NEXT_PROMPT_FILE"
 
 # Add push instruction only if push_every_round is true
 if [[ "$PUSH_EVERY_ROUND" == "true" ]]; then
-    PUSH_NOTE=$(load_template "$TEMPLATE_DIR" "claude/push-every-round-note.md" 2>/dev/null)
+    PUSH_NOTE=$(load_template "$TEMPLATE_DIR" "loop/push-every-round-note.md" 2>/dev/null)
     if [[ -z "$PUSH_NOTE" ]]; then
         PUSH_NOTE="Also push your changes after committing."
     fi
@@ -2070,7 +2070,7 @@ if [[ "$PUSH_EVERY_ROUND" == "true" ]]; then
 fi
 
 # Add goal tracker update request template
-GOAL_UPDATE_REQUEST=$(load_template "$TEMPLATE_DIR" "claude/goal-tracker-update-request.md" 2>/dev/null)
+GOAL_UPDATE_REQUEST=$(load_template "$TEMPLATE_DIR" "loop/goal-tracker-update-request.md" 2>/dev/null)
 if [[ -z "$GOAL_UPDATE_REQUEST" ]]; then
     GOAL_UPDATE_REQUEST="Include a Goal Tracker Update Request section in your summary if needed."
 fi
@@ -2079,8 +2079,8 @@ echo "$GOAL_UPDATE_REQUEST" >> "$NEXT_PROMPT_FILE"
 # Add agent-teams continuation instructions (only during implementation phase, not review phase)
 # Loads both continuation header and shared core template for full team leader guidance
 if [[ "$AGENT_TEAMS" == "true" ]] && [[ "$REVIEW_STARTED" != "true" ]]; then
-    AGENT_TEAMS_CONTINUE=$(load_template "$TEMPLATE_DIR" "claude/agent-teams-continue.md" 2>/dev/null)
-    AGENT_TEAMS_CORE=$(load_template "$TEMPLATE_DIR" "claude/agent-teams-core.md" 2>/dev/null)
+    AGENT_TEAMS_CONTINUE=$(load_template "$TEMPLATE_DIR" "loop/agent-teams-continue.md" 2>/dev/null)
+    AGENT_TEAMS_CORE=$(load_template "$TEMPLATE_DIR" "loop/agent-teams-core.md" 2>/dev/null)
     if [[ -n "$AGENT_TEAMS_CONTINUE" ]] && [[ -n "$AGENT_TEAMS_CORE" ]]; then
         echo "" >> "$NEXT_PROMPT_FILE"
         echo "$AGENT_TEAMS_CONTINUE" >> "$NEXT_PROMPT_FILE"

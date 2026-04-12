@@ -1,5 +1,5 @@
 # Humanize Introduction
-This is a Claude Code plugin that provides iterative development with Codex review. Use `/start-rlcr-loop` to start an RLCR loop, and `/cancel-rlcr-loop` to cancel an active loop.
+This repo provides a Codex-native iterative development workflow with RLCR. Legacy Claude entrypoints may still exist, but the runtime model is Codex build plus Codex review. Use `/start-rlcr-loop` to start an RLCR loop, and `/cancel-rlcr-loop` to cancel an active loop.
 
 # Humanize Project Rules
 - Everything about this project, including but not limited to implementations, comments, tests and documentations should be in English. No Emoji or CJK char is allowed.

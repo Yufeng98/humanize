@@ -178,18 +178,18 @@ fi
 
 if [[ -f "$GEN_PLAN_CMD" ]]; then
     PHASE3_LINE=$(grep -n "## Phase 3: Codex First-Pass Analysis" "$GEN_PLAN_CMD" | head -1 | cut -d: -f1 || true)
-    PHASE4_LINE=$(grep -n "## Phase 4: Claude Candidate Plan (v1)" "$GEN_PLAN_CMD" | head -1 | cut -d: -f1 || true)
+    PHASE4_LINE=$(grep -n "## Phase 4: Codex Candidate Plan (v1)" "$GEN_PLAN_CMD" | head -1 | cut -d: -f1 || true)
     if [[ -n "$PHASE3_LINE" && -n "$PHASE4_LINE" && "$PHASE3_LINE" -lt "$PHASE4_LINE" ]]; then
-        pass "gen-plan command orders codex analysis before claude candidate plan"
+        pass "gen-plan command orders codex analysis before codex candidate plan"
     else
-        fail "gen-plan command orders codex analysis before claude candidate plan" "Phase 3 line < Phase 4 line" "phase3=$PHASE3_LINE phase4=$PHASE4_LINE"
+        fail "gen-plan command orders codex analysis before codex candidate plan" "Phase 3 line < Phase 4 line" "phase3=$PHASE3_LINE phase4=$PHASE4_LINE"
     fi
 fi
 
-if [[ -f "$PLAN_TEMPLATE" ]] && grep -q "## Claude-Codex Deliberation" "$PLAN_TEMPLATE"; then
+if [[ -f "$PLAN_TEMPLATE" ]] && grep -q "## Plan Convergence Record" "$PLAN_TEMPLATE"; then
     pass "plan template includes Claude-Codex deliberation section"
 else
-    fail "plan template includes Claude-Codex deliberation section" "Claude-Codex Deliberation section" "missing"
+    fail "plan template includes Claude-Codex deliberation section" "Plan Convergence Record section" "missing"
 fi
 
 if [[ -f "$PLAN_TEMPLATE" ]] && grep -q "## Pending User Decisions" "$PLAN_TEMPLATE"; then

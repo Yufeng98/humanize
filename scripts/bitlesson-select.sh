@@ -8,17 +8,9 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)"
 source "$SCRIPT_DIR/lib/config-loader.sh"
-source "$SCRIPT_DIR/lib/model-router.sh"
 
 PLUGIN_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 PROJECT_ROOT="${CLAUDE_PROJECT_DIR:-$(git rev-parse --show-toplevel 2>/dev/null || pwd)}"
-MERGED_CONFIG="$(load_merged_config "$PLUGIN_ROOT" "$PROJECT_ROOT")"
-BITLESSON_MODEL="$(get_config_value "$MERGED_CONFIG" "bitlesson_model")"
-BITLESSON_MODEL="${BITLESSON_MODEL:-haiku}"
-CODEX_FALLBACK_MODEL="$(get_config_value "$MERGED_CONFIG" "codex_model")"
-CODEX_FALLBACK_MODEL="${CODEX_FALLBACK_MODEL:-$DEFAULT_CODEX_MODEL}"
-PROVIDER_MODE="$(get_config_value "$MERGED_CONFIG" "provider_mode")"
-PROVIDER_MODE="${PROVIDER_MODE:-auto}"
 
 # Source portable timeout wrapper
 source "$SCRIPT_DIR/portable-timeout.sh"
@@ -26,6 +18,12 @@ source "$SCRIPT_DIR/portable-timeout.sh"
 # Source shared loop library (kept for consistency with ask-codex.sh)
 HOOKS_LIB_DIR="$(cd "$SCRIPT_DIR/../hooks/lib" && pwd)"
 source "$HOOKS_LIB_DIR/loop-common.sh"
+
+MERGED_CONFIG="$(load_merged_config "$PLUGIN_ROOT" "$PROJECT_ROOT")"
+BITLESSON_MODEL="$(get_config_value "$MERGED_CONFIG" "bitlesson_model")"
+BITLESSON_MODEL="${BITLESSON_MODEL:-$DEFAULT_CODEX_MODEL}"
+CODEX_FALLBACK_MODEL="$(get_config_value "$MERGED_CONFIG" "codex_model")"
+CODEX_FALLBACK_MODEL="${CODEX_FALLBACK_MODEL:-$DEFAULT_CODEX_MODEL}"
 
 usage() {
     cat <<'USAGE_EOF' >&2
@@ -104,25 +102,24 @@ if ! printf '%s\n' "$BITLESSON_CONTENT" | grep -Eq '^[[:space:]]*##[[:space:]]+L
 fi
 
 # ========================================
-# Determine Provider from BITLESSON_MODEL
+# Resolve Codex-Only BitLesson Model
 # ========================================
 
-BITLESSON_PROVIDER="$(detect_provider "$BITLESSON_MODEL")"
-
-if [[ "$PROVIDER_MODE" == "codex-only" ]] && [[ "$BITLESSON_PROVIDER" == "claude" ]]; then
+if [[ "$BITLESSON_MODEL" =~ ^(claude-|haiku|sonnet|opus) ]]; then
     BITLESSON_MODEL="$CODEX_FALLBACK_MODEL"
-    BITLESSON_PROVIDER="codex"
+elif [[ ! "$BITLESSON_MODEL" =~ ^(gpt-|o[0-9]) ]]; then
+    echo "Error: Unknown BitLesson model '$BITLESSON_MODEL'. Expected a Codex model or a legacy Claude-flavored alias." >&2
+    exit 1
 fi
 
-# ========================================
-# Conditional Dependency Check (with fallback)
-# ========================================
-
-if ! check_provider_dependency "$BITLESSON_PROVIDER" 2>/dev/null; then
-    # Fall back to codex provider when the configured provider binary is missing
+if [[ ! "$BITLESSON_MODEL" =~ ^(gpt-|o[0-9]) ]]; then
     BITLESSON_MODEL="$DEFAULT_CODEX_MODEL"
-    BITLESSON_PROVIDER="codex"
-    check_provider_dependency "$BITLESSON_PROVIDER"
+fi
+
+if ! command -v codex >/dev/null 2>&1; then
+    echo "Error: Required binary 'codex' was not found in PATH for BitLesson selection." >&2
+    echo "Install: https://github.com/openai/codex" >&2
+    exit 1
 fi
 
 # ========================================
@@ -175,49 +172,36 @@ EOF
 )"
 
 # ========================================
-# Run Selector (Codex or Claude)
+# Run Selector (Codex only)
 # ========================================
 
 SELECTOR_TIMEOUT=120
 
 run_selector() {
-    local provider="$1"
-    local model="$2"
-
-    if [[ "$provider" == "codex" ]]; then
-        local codex_exec_args=()
-        # Probe whether the installed Codex CLI supports --disable flag
-        if codex --help 2>&1 | grep -q -- '--disable'; then
-            codex_exec_args+=("--disable" "codex_hooks")
-        fi
-        # Probe for --skip-git-repo-check and --ephemeral support
-        if codex exec --help 2>&1 | grep -q -- '--skip-git-repo-check'; then
-            codex_exec_args+=("--skip-git-repo-check")
-        fi
-        if codex exec --help 2>&1 | grep -q -- '--ephemeral'; then
-            codex_exec_args+=("--ephemeral")
-        fi
-        codex_exec_args+=(
-            "-s" "read-only"
-            "-m" "$model"
-            "-c" "model_reasoning_effort=low"
-            "-C" "$CODEX_PROJECT_ROOT"
-        )
-        printf '%s' "$PROMPT" | run_with_timeout "$SELECTOR_TIMEOUT" codex exec "${codex_exec_args[@]}" -
-        return $?
+    local model="$1"
+    local codex_exec_args=()
+    # Probe whether the installed Codex CLI supports --disable flag
+    if codex --help 2>&1 | grep -q -- '--disable'; then
+        codex_exec_args+=("--disable" "codex_hooks")
     fi
-
-    if [[ "$provider" == "claude" ]]; then
-        printf '%s' "$PROMPT" | run_with_timeout "$SELECTOR_TIMEOUT" claude --print --model "$model" -
-        return $?
+    # Probe for --skip-git-repo-check and --ephemeral support
+    if codex exec --help 2>&1 | grep -q -- '--skip-git-repo-check'; then
+        codex_exec_args+=("--skip-git-repo-check")
     fi
-
-    echo "Error: Unsupported BitLesson provider '$provider'" >&2
-    return 1
+    if codex exec --help 2>&1 | grep -q -- '--ephemeral'; then
+        codex_exec_args+=("--ephemeral")
+    fi
+    codex_exec_args+=(
+        "-s" "read-only"
+        "-m" "$model"
+        "-c" "model_reasoning_effort=low"
+        "-C" "$CODEX_PROJECT_ROOT"
+    )
+    printf '%s' "$PROMPT" | run_with_timeout "$SELECTOR_TIMEOUT" codex exec "${codex_exec_args[@]}" -
 }
 
 CODEX_EXIT_CODE=0
-RAW_OUTPUT="$(run_selector "$BITLESSON_PROVIDER" "$BITLESSON_MODEL" 2>&1)" || CODEX_EXIT_CODE=$?
+RAW_OUTPUT="$(run_selector "$BITLESSON_MODEL" 2>&1)" || CODEX_EXIT_CODE=$?
 
 if [[ $CODEX_EXIT_CODE -eq 124 ]]; then
     echo "Error: BitLesson selector timed out after ${SELECTOR_TIMEOUT} seconds" >&2
